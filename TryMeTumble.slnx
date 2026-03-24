@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TryMeTumble.csproj" />
+  <Project Path="src/DatabaseUpgrader/TryMeTumble.DatabaseUpgrader.csproj" />
+  <Project Path="tests/TryMeTumble.UnitTests/TryMeTumble.UnitTests.csproj" />
+</Solution>

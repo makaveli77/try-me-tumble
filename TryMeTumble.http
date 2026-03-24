@@ -1,0 +1,6 @@
+@TryMeTumble_HostAddress = http://localhost:5073
+
+GET {{TryMeTumble_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

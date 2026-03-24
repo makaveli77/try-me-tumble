@@ -1,4 +1,4 @@
-# 🌀 try-me-tumble - Random Website Discovery App
+# 🌀 Try Me Tumble - Random Website Discovery App
 
 A professional, containerized ASP.NET Core Web API built with **.NET 10**, **PostgreSQL**, and **Redis**, following modern best practices (Clean Architecture, Repository Pattern, and DTOs).
 

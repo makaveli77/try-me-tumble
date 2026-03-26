@@ -30,7 +30,8 @@ namespace TryMeTumble.Application.Services
                     Id = Guid.NewGuid(),
                     Username = "system_seeder",
                     Email = "seeder@trymetumble.com",
-                    PasswordHash = "NO_LOGIN_ALLOWED"
+                    PasswordHash = "NO_LOGIN_ALLOWED",
+                    CreatedAt = DateTime.UtcNow
                 };
                 await _unitOfWork.Users.AddAsync(systemUser);
                 await _unitOfWork.CompleteAsync();
@@ -59,7 +60,7 @@ namespace TryMeTumble.Application.Services
                 .RuleFor(w => w.Title, f => f.Company.CatchPhrase())
                 .RuleFor(w => w.Description, f => f.Company.Bs())
                 .RuleFor(w => w.SubmittedById, f => systemUser.Id)
-                .RuleFor(w => w.CreatedAt, f => f.Date.Past(2))
+                .RuleFor(w => w.CreatedAt, f => f.Date.Past(2).ToUniversalTime())
                 .RuleFor(w => w.WebsiteCategories, f => new List<WebsiteCategory> 
                 { 
                     new WebsiteCategory 

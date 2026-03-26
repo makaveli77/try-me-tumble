@@ -17,9 +17,10 @@ This project is a high-performance URL discovery service designed to mimic the c
 
 - **Discover Randomly**: Instantly get a random website from the global database, prioritized by caching layers.
 - **Categorized Discovery**: Supports blistering fast `O(1)` random website lookup natively scoped to specific categories via dynamically populated Redis cache queues.
-- **Smart Data Seeding**: Rapid 20k+ site population via `Bogus`, efficiently piped into both PostgreSQL and segmented Redis queues perfectly tuned for immediate local development.
+- **Smart Data Seeding**: Rapid 20k+ site population via `Bogus`, efficiently piped into both PostgreSQL and segmented Redis queues perfectly tuned for immediate local development. **Includes a curated list of reliable, iframe-friendly websites (Wikipedia, TED, etc.) for a better initial experience.**
 - **Upvote System**: Influence the discovery algorithm by upvoting websites you find interesting.
 - **User Collections**: Save discovered websites to your personal profile for later viewing.
+- **Internal Browser Experience**: Stumble through websites directly within the app using the integrated discovery frame with failure detection and easy skip options.
 - **Smart Caching**: Uses Redis to cache candidate lists for discovery, minimizing database load during high traffic.
 - **Stateless Auth**: Secure registration and login flow returning industry-standard JWT tokens.
 - **Categorization & Tags**: Group websites by dynamic categories and flexible tags for precise discovery.

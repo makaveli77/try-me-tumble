@@ -107,14 +107,21 @@
             }, 50);
 
             try {
-                // Mocking the call for this visualization
-                // In production: const response = await fetch('/api/Websites/discover');
-                // const data = await response.json();
-                // window.open(data.url, '_blank');
+                const response = await fetch('/api/Websites/discover');
+                if (!response.ok) throw new Error('Failed to fetch a random website');
                 
-                console.log("Stumbling...");
+                const data = await response.json();
+                
+                if (data && data.url) {
+                    window.open(data.url, '_blank');
+                    console.log("Stumbling to:", data.url);
+                } else {
+                    console.warn("No website found in the response.");
+                    alert("No websites found! Check back later.");
+                }
             } catch (err) {
                 console.error("Discovery failed", err);
+                alert("Something went wrong while trying to stumble. Please try again.");
             }
         });
     </script>

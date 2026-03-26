@@ -125,6 +125,31 @@
                 <p class="text-zinc-400 font-medium">Stumbling to the unknown...</p>
                 <p class="text-zinc-600 text-xs text-center max-w-xs">Note: Some websites may prevent being displayed inside a frame for security reasons.</p>
             </div>
+
+            <!-- Fallback for failed loads (detected by timeout or CSP) -->
+            <div id="iframeError" class="hidden absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center space-y-6 px-4 text-center">
+                <div class="w-20 h-20 bg-zinc-900 border border-zinc-700 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-xl font-bold">Failed to Load Content</h3>
+                    <p class="text-zinc-400 max-w-md">This website may have been moved or is preventing us from showing it in this preview frame.</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a id="errorOpenNewTab" target="_blank" class="px-6 py-3 bg-pink-600 hover:bg-pink-700 rounded-xl font-bold transition-all flex items-center gap-2">
+                        Open in New Tab
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                    <button onclick="stumble()" class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-bold transition-all">
+                        Try Another Stumble
+                    </button>
+                </div>
+            </div>
+
             <iframe id="stumbleFrame" class="w-full h-full border-none opacity-0 transition-opacity duration-500" src="about:blank"></iframe>
         </div>
     </div>
@@ -144,9 +169,16 @@
         const stumbleFrame = document.getElementById('stumbleFrame');
         const currentUrlText = document.getElementById('currentUrl');
         const openNewTab = document.getElementById('openNewTab');
+        const errorOpenNewTab = document.getElementById('errorOpenNewTab');
         const iframeLoader = document.getElementById('iframeLoader');
+        const iframeError = document.getElementById('iframeError');
+
+        let stumbleTimeout;
 
         async function stumble() {
+            // Cancel any previous timeout
+            if (stumbleTimeout) clearTimeout(stumbleTimeout);
+
             // Show skeleton loader on initial click
             if (iframeModal.classList.contains('hidden')) {
                 previewCard.classList.remove('hidden');
@@ -157,7 +189,9 @@
 
             // Prepare iframe
             iframeLoader.classList.remove('hidden');
+            iframeError.classList.add('hidden');
             stumbleFrame.classList.add('opacity-0');
+            stumbleFrame.src = 'about:blank';
 
             try {
                 const response = await fetch('/api/Websites/discover');
@@ -178,10 +212,20 @@
                     stumbleFrame.src = data.url;
                     currentUrlText.textContent = data.url;
                     openNewTab.href = data.url;
+                    errorOpenNewTab.href = data.url;
+
+                    // Timeout fallback for unresponsive loads (CSP/X-Frame-Options)
+                    stumbleTimeout = setTimeout(() => {
+                        if (!stumbleFrame.classList.contains('opacity-0')) return; // Already loaded
+                        iframeLoader.classList.add('hidden');
+                        iframeError.classList.remove('hidden');
+                    }, 8000); // 8 second timeout
 
                     // Handle frame loading
                     stumbleFrame.onload = () => {
+                        clearTimeout(stumbleTimeout);
                         iframeLoader.classList.add('hidden');
+                        iframeError.classList.add('hidden');
                         stumbleFrame.classList.remove('opacity-0');
                     };
 

@@ -7,7 +7,7 @@
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
         @layer base {
-            body { @apply bg-zinc-950 text-zinc-100 font-sans; }
+            body { @apply bg-zinc-950 text-zinc-100 font-sans overflow-x-hidden; }
         }
         .shining-border {
             position: relative;
@@ -30,6 +30,16 @@
             0% { transform: translateX(-100%) translateY(-100%); }
             100% { transform: translateX(100%) translateY(100%); }
         }
+
+        /* Iframe Modal styles */
+        #iframeModal {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #iframeModal.hidden {
+            display: none;
+            opacity: 0;
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -37,7 +47,7 @@
     <nav class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center transform rotate-12">
+                <div class="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center transform rotate-12 cursor-pointer" onclick="location.reload()">
                     <span class="text-white font-bold text-xl -rotate-12">T</span>
                 </div>
                 <span class="text-xl font-bold tracking-tight">TryMeTumble</span>
@@ -73,20 +83,51 @@
                 </button>
             </div>
 
-            <!-- Website Preview (Skeleton/Placeholder) -->
+            <!-- Website Preview (Skeleton) -->
             <div id="previewCard" class="hidden w-full max-w-2xl mx-auto p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl transform transition-all duration-500 opacity-0 translate-y-4">
                 <div class="h-48 bg-zinc-800 rounded-2xl mb-6 animate-pulse"></div>
                 <div class="space-y-3 text-left">
                     <div class="h-6 w-3/4 bg-zinc-800 rounded animate-pulse"></div>
                     <div class="h-4 w-1/2 bg-zinc-800 rounded animate-pulse"></div>
-                    <div class="flex gap-2 pt-2">
-                        <div class="h-6 w-16 bg-zinc-800 rounded-full animate-pulse"></div>
-                        <div class="h-6 w-20 bg-zinc-800 rounded-full animate-pulse"></div>
-                    </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Browser Frame Overlay -->
+    <div id="iframeModal" class="hidden fixed inset-0 z-[60] bg-zinc-950 flex flex-col">
+        <div class="h-14 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between px-4">
+            <div class="flex items-center gap-4 flex-1">
+                <button onclick="closeModal()" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <div class="bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-lg text-sm text-zinc-400 flex-1 max-w-xl truncate font-mono" id="currentUrl">
+                    ...
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="nextBtn" class="bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105">
+                    NEXT STUMBLE
+                </button>
+                <a id="openNewTab" target="_blank" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Open in new tab">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+        <div class="flex-1 bg-white relative">
+            <!-- Loading indicator for iframe -->
+            <div id="iframeLoader" class="absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center space-y-4">
+                <div class="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-zinc-400 font-medium">Stumbling to the unknown...</p>
+                <p class="text-zinc-600 text-xs text-center max-w-xs">Note: Some websites may prevent being displayed inside a frame for security reasons.</p>
+            </div>
+            <iframe id="stumbleFrame" class="w-full h-full border-none opacity-0 transition-opacity duration-500" src="about:blank"></iframe>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="border-t border-zinc-800 py-8 bg-zinc-950">
@@ -97,33 +138,76 @@
 
     <script>
         const discoverBtn = document.getElementById('discoverBtn');
+        const nextBtn = document.getElementById('nextBtn');
         const previewCard = document.getElementById('previewCard');
+        const iframeModal = document.getElementById('iframeModal');
+        const stumbleFrame = document.getElementById('stumbleFrame');
+        const currentUrlText = document.getElementById('currentUrl');
+        const openNewTab = document.getElementById('openNewTab');
+        const iframeLoader = document.getElementById('iframeLoader');
 
-        discoverBtn.addEventListener('click', async () => {
-            // Show skeleton loader
-            previewCard.classList.remove('hidden');
-            setTimeout(() => {
-                previewCard.classList.remove('opacity-0', 'translate-y-4');
-            }, 50);
+        async function stumble() {
+            // Show skeleton loader on initial click
+            if (iframeModal.classList.contains('hidden')) {
+                previewCard.classList.remove('hidden');
+                setTimeout(() => {
+                    previewCard.classList.remove('opacity-0', 'translate-y-4');
+                }, 50);
+            }
+
+            // Prepare iframe
+            iframeLoader.classList.remove('hidden');
+            stumbleFrame.classList.add('opacity-0');
 
             try {
                 const response = await fetch('/api/Websites/discover');
-                if (!response.ok) throw new Error('Failed to fetch a random website');
+                if (response.status === 404) {
+                    alert("No websites found! Please seed the database first.");
+                    closeModal();
+                    return;
+                }
+                if (!response.ok) throw new Error('Discovery failed');
                 
                 const data = await response.json();
                 
                 if (data && data.url) {
-                    window.open(data.url, '_blank');
+                    // Open in custom frame
+                    iframeModal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling
+                    
+                    stumbleFrame.src = data.url;
+                    currentUrlText.textContent = data.url;
+                    openNewTab.href = data.url;
+
+                    // Handle frame loading
+                    stumbleFrame.onload = () => {
+                        iframeLoader.classList.add('hidden');
+                        stumbleFrame.classList.remove('opacity-0');
+                    };
+
                     console.log("Stumbling to:", data.url);
                 } else {
-                    console.warn("No website found in the response.");
                     alert("No websites found! Check back later.");
+                    closeModal();
                 }
             } catch (err) {
                 console.error("Discovery failed", err);
                 alert("Something went wrong while trying to stumble. Please try again.");
+                closeModal();
             }
-        });
+        }
+
+        function closeModal() {
+            iframeModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            stumbleFrame.src = 'about:blank';
+            previewCard.classList.add('hidden', 'opacity-0', 'translate-y-4');
+        }
+
+        discoverBtn.addEventListener('click', stumble);
+        nextBtn.addEventListener('click', stumble);
     </script>
+</body>
+</html>
 </body>
 </html>

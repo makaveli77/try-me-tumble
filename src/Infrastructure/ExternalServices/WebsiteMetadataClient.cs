@@ -25,7 +25,7 @@ namespace TryMeTumble.Infrastructure.ExternalServices
 
                 var content = await response.Content.ReadAsStringAsync();
                 
-                // Very rudimentary title parsing for architectural demonstration
+                // Title parsing
                 var title = ParseHtmlTag(content, "<title>", "</title>");
                 
                 _logger.LogInformation("Successfully fetched metadata for {Url}", url);

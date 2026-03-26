@@ -21,6 +21,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -68,14 +69,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.InjectStylesheet("/swagger-dark.css");
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // development content
 }
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "frontend")),
+    RequestPath = ""
+});
+
+app.MapGet("/", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "discover.html"), "text/html"));
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

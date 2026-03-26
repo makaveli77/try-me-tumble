@@ -1,46 +1,74 @@
 #!/bin/bash
 
-echo "� Starting try-me-tumble Clone Setup..."
+# Exit on any error
+set -e
 
-# 1. Start Infrastructure
-echo "🐳 Starting PostgreSQL and Redis via Docker..."
+echo "🌊 Starting TryMeTumble Full Reset & Setup..."
+
+# 1. Hard Reset Infrastructure
+echo "🗑  Stopping and removing existing containers and volumes..."
+docker-compose down -v --remove-orphans || true
+
+echo "🐳 Starting fresh PostgreSQL and Redis (Port 6381 mapping)..."
 docker-compose up -d db redis
 
-# 2. Restore Dependencies
+# 2. Wait for Infrastructure
+echo "⏳ Waiting for Database and Redis to be ready..."
+# Simple wait loop for Postgres
+until docker exec try-me-tumble-db pg_isready -U postgres; do
+  echo "Postgres is unavailable - sleeping"
+  sleep 2
+done
+
+# 3. Clean and Restore
+echo "🧹 Cleaning previous builds..."
+dotnet clean
+rm -rf bin/ obj/
+
 echo "📦 Restoring .NET dependencies..."
 dotnet restore
 
-# 3. Wait for Database
-echo "⏳ Waiting for Database to be ready..."
-sleep 5
-
 # 4. Apply Migrations
-echo "🏗  Applying DbUp Database Migrations..."
+echo "🏗  Applying Database Migrations..."
 dotnet run --project src/DatabaseUpgrader/TryMeTumble.DatabaseUpgrader.csproj
 
-# 5. Build and Start API in background to Seed Data
-echo "🚀 Starting temporary API to seed mock data..."
-dotnet run --project TryMeTumble.csproj -c Release &
+# 5. Start and Seed
+echo "🚀 Starting API in background to seed data..."
+# Run API in background, redirecting output to a log file
+dotnet run --project TryMeTumble.csproj > api_setup.log 2>&1 &
 API_PID=$!
-sleep 5 # Wait for Kestrel to wire up
 
-# Source .env file if it exists
-if [ -f .env ]; then
-  source .env
+echo "⏳ Waiting for API to start (Checking http://localhost:5202/health)..."
+# Wait for health check to pass
+max_attempts=30
+attempt=0
+until (curl --output /dev/null --silent --head --fail http://localhost:5202/health) || [ $attempt -eq $max_attempts ]; do
+    printf '.'
+    attempt=$((attempt+1))
+    sleep 2
+done
+
+if [ $attempt -eq $max_attempts ]; then
+    echo "❌ API failed to start. Check api_setup.log"
+    cat api_setup.log
+    kill $API_PID || true
+    exit 1
 fi
 
-# Default seed count to 20000 if not set in .env
-SEED_COUNT=${SEED_COUNT:-20000}
+echo -e "\n🌱 Seeding 1000 random websites..."
+curl -s -X POST "http://localhost:5202/api/Websites/seed?count=1000" > /dev/null
 
-echo "🌱 Seeding $SEED_COUNT random websites into PostgreSQL and Redis..."
-curl -s -X POST "http://localhost:5200/api/Websites/seed?count=$SEED_COUNT" > /dev/null
-echo -e "\n✅ Seeding complete!"
+echo "✅ Seeding complete!"
+echo "🛑 Stopping seeding background process..."
+# Kill the specific background process group to ensure it's fully stopped
+kill -TERM -$API_PID 2>/dev/null || kill $API_PID || true
+# Wait a moment for the port to be released
+sleep 3
 
-# Shut down temporary background API
-kill $API_PID
+# 6. Final Launch
+echo "🎉 Setup Complete!"
+echo "📱 Access the frontend at: http://localhost:5202/"
+echo "📄 Swagger UI: http://localhost:5202/swagger"
 
-# 6. Final Step
-echo "🎉 Full Setup Complete!"
-echo "🏃 Run 'dotnet run' to start the application natively,"
-echo "📄 或者 'docker-compose up -d' for the containerized version."
-
+echo "🚀 Launching API..."
+dotnet run --project TryMeTumble.csproj

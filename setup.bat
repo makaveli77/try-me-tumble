@@ -1,49 +1,65 @@
 @echo off
-echo � Starting try-me-tumble Clone Setup for Windows...
+setlocal
 
-REM 1. Start Infrastructure
-echo 🐳 Starting PostgreSQL and Redis via Docker...
+echo 🌊 Starting TryMeTumble Full Reset ^& Setup...
+
+echo 🗑  Stopping and removing existing containers and volumes...
+docker-compose down -v --remove-orphans
+
+echo 🐳 Starting fresh PostgreSQL and Redis (Port 6381 mapping)...
 docker-compose up -d db redis
 
-REM 2. Restore Dependencies
+echo ⏳ Waiting for Database and Redis to be ready...
+:postgres_wait
+docker exec try-me-tumble-db pg_isready -U postgres >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo Postgres is unavailable - sleeping
+    timeout /t 2 /nobreak >nul
+    goto postgres_wait
+)
+
+echo 🧹 Cleaning previous builds...
+dotnet clean
+if exist bin rd /s /q bin
+if exist obj rd /s /q obj
+
 echo 📦 Restoring .NET dependencies...
 dotnet restore
 
-REM 3. Wait for DB to be healthy
-echo ⏳ Waiting 10s for Database to initialize...
-timeout /t 10 /nobreak >nul
+echo 🏗  Applying Database Migrations...
+dotnet run --project src\DatabaseUpgrader\TryMeTumble.DatabaseUpgrader.csproj
 
-REM 4. Apply Migrations
-echo 🔄 Running DbUp Migrations...
-dotnet run --project src/DatabaseUpgrader/TryMeTumble.DatabaseUpgrader.csproj
-
-REM 5. Seed Data via background API
-echo 🚀 Starting API in background to seed mock data...
-start /B "TryMeTumbleAPI" dotnet run --project TryMeTumble.csproj -c Release
-
-echo ⏳ Waiting 6s for API to start up...
-timeout /t 6 /nobreak >nul
-
-REM Default seed count
-set SEED_COUNT=20000
-
-REM Source .env file if it exists (very basic parsing)
-if exist .env (
-    for /f "tokens=1,2 delims==" %%A in (.env) do (
-        if "%%A"=="SEED_COUNT" set SEED_COUNT=%%B
+echo 🚀 Starting API in background to seed data...
+set "API_PORT=5202"
+start /b dotnet run --project TryMeTumble.csproj > api_setup.log 2>&1
+echo ⏳ Waiting for API to start (Checking http://localhost:%API_PORT%/health)...
+set "max_attempts=30"
+set "attempt=0"
+:api_wait
+curl --output nul --silent --head --fail http://localhost:%API_PORT%/health
+if %ERRORLEVEL% neq 0 (
+    set /a attempt+=1
+    if %attempt% geq %max_attempts% (
+        echo ❌ API failed to start. Check api_setup.log
+        exit /b 1
     )
+    set /p="." <nul
+    timeout /t 2 /nobreak >nul
+    goto api_wait
 )
 
-echo 🌱 Seeding %SEED_COUNT% random websites into PostgreSQL and Redis...
-curl -s -X POST "http://localhost:5200/api/Websites/seed?count=%SEED_COUNT%" > nul
+echo.
+echo 🌱 Seeding 1000 random websites...
+curl -s -X POST "http://localhost:%API_PORT%/api/Websites/seed?count=1000" > nul
+
 echo ✅ Seeding complete!
+echo 🛑 Stopping seeding background process...
+taskkill /IM TryMeTumble.exe /F 2>nul
+taskkill /IM dotnet.exe /F 2>nul
 
-REM Kill the background API process
-taskkill /F /IM TryMeTumble.exe /T >nul 2>&1
+echo 🎉 Setup Complete!
+echo 📱 Access the frontend at: http://localhost:%API_PORT%/
+echo 📄 Swagger UI: http://localhost:%API_PORT%/swagger
 
-echo.
-echo 🎉 Full Setup Complete!
-echo 🚀 Run 'dotnet run' to start the application natively.
-echo.
-pause
-
+echo 🚀 Launching API...
+dotnet run --project TryMeTumble.csproj

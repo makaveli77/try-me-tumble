@@ -54,24 +54,32 @@ setup.bat
 ### 2. Manual Setup (Alternative)
 If you prefer to run the commands manually:
 ```bash
-# Start infrastructure and app via docker-compose
-docker-compose up -d --build
+# Start infrastructure
+docker-compose up -d db redis
+
+# Run database migrations
+dotnet run --project src/DatabaseUpgrader/TryMeTumble.DatabaseUpgrader.csproj
+
+# Seed the database (make sure API is running)
+curl -X POST "http://localhost:5202/api/Websites/seed?count=1000"
 
 # Run application locally
-dotnet run --project src/TryMeTumble
+dotnet run --project TryMeTumble.csproj
 ```
 
 ### 3. Access the Application
-- **API Base URL**: `http://localhost:5200` & `https://localhost:7198`
-- **Swagger Documentation**: `http://localhost:5200/swagger/index.html`
+- **Discover Frontend**: [http://localhost:5202/](http://localhost:5202/)
+- **API Base URL**: `http://localhost:5202`
+- **Swagger Documentation**: [http://localhost:5202/swagger](http://localhost:5202/swagger)
+- **Redis Insights**: Access Redis on `localhost:6381` (Host) or `6379` (Container)
 
 ---
 
 ## 📖 API Endpoint Reference
 
 ### 🌀 Discovery & Websites
-* **GET** `/api/Websites/discover` - Returns a random website (Redis cached). Supports optional `?categoryId={id}` for category-specific discovery.
-* **POST** `/api/Websites/seed?count=20000` - ⚡ **Mock Data Seeder**: Instantly generates and inserts fake websites. Configure default count in `.env` via `SEED_COUNT`.
+* **GET** `/api/Websites/discover` - Returns a random website (Redis cached). Supports optional `?categoryId={id}` for category-specific discovery. **Used by the Frontend Discover page.**
+* **POST** `/api/Websites/seed?count=1000` - ⚡ **Mock Data Seeder**: Instantly generates and inserts fake websites.
 * **GET** `/api/Websites?page=1&pageSize=10` - Get paginated lists of websites.
 * **GET** `/api/Websites/{id}` - Get website details.
 * **GET** `/api/Websites/by-category/{categoryId}` - Filter websites.

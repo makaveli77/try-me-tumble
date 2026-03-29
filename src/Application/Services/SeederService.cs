@@ -49,18 +49,18 @@ public class SeederService(IUnitOfWork unitOfWork, IConnectionMultiplexer redis)
 
         var realWebsites = new List<(string Url, string Title, string Description, string Category)>
         {
-            ("https://en.wikipedia.org/wiki/Special:Random", "Wikipedia Random Article", "Explore the world's most extensive collaborative encyclopedia by jumping into a random topic.", "Education"),
+            ("https://en.wikipedia.org/wiki/Special:Random", "Wikipedia", "Explore the world's most extensive collaborative encyclopedia by jumping into a random topic.", "Education"),
             ("https://archive.org", "The Internet Archive", "A non-profit library of millions of free books, movies, software, music, websites, and more.", "Technology"),
-            ("https://www.gutenberg.org/", "Project Gutenberg", "A library of over 70,000 free eBooks, with a focus on older works for which the U.S. copyright has expired.", "Education"),
-            ("https://www.ted.com/talks", "TED Talks", "Influential videos from expert speakers on education, business, science, tech and creativity.", "Entertainment"),
-            ("https://www.nationalgeographic.com/", "National Geographic", "Experience the world through the eyes of National Geographic.", "Science"),
-            ("https://news.ycombinator.com/", "Hacker News", "A social news website focusing on computer science and entrepreneurship.", "Technology"),
-            ("https://www.reddit.com/r/random", "Reddit Random", "Jump into a random subreddit and see what the community is talking about.", "Entertainment"),
-            ("https://www.bbc.com/news", "BBC News", "Breaking news, sport, TV, radio and a whole lot more from the BBC.", "News"),
-            ("https://www.nature.com/", "Nature", "The world's leading multidisciplinary science journal.", "Science"),
-            ("https://www.behance.net/", "Behance", "The world's largest creative network for showcasing and discovering creative work.", "Art"),
-            ("https://itch.io/", "Itch.io", "A simple way to find, download and distribute indie games online for free.", "Gaming"),
-            ("https://bandcamp.com/", "Bandcamp", "Discover amazing new music and directly support the artists who make it.", "Music")
+            ("https://news.ycombinator.com/", "Hacker News", "A social news website focusing on computer science and entrepreneurship. Runs fast and embeds well.", "Technology"),
+            ("https://www.bing.com", "Bing", "Microsoft's search engine. Fully allows embedding for testing purposes.", "Technology"),
+            ("https://www.youtube.com/embed/jfKfPfyJRdk", "Lofi Girl Radio", "A classic embedded YouTube stream for background music.", "Music"),
+            ("https://maps.google.com/maps?q=London&t=&z=13&ie=UTF8&iwloc=&output=embed", "Google Maps", "Embedded interactive map of London.", "Education"),
+            ("https://xkcd.com/", "XKCD", "A webcomic of romance, sarcasm, math, and language.", "Entertainment"),
+            ("https://lobste.rs/", "Lobsters", "Computing-focused community centered around link aggregation and discussion.", "Technology"),
+            ("https://w3c.github.io/html-reference/", "W3C HTML Reference", "A fast, iframe-friendly HTML reference document.", "Technology"),
+            ("https://player.vimeo.com/video/43408198", "Vimeo Embed", "A beautiful high definition video player embed.", "Art"),
+            ("https://lite.cnn.com/", "CNN Lite", "A text-only, fast-loading, iframe-friendly version of CNN.", "News"),
+            ("https://openlibrary.org/", "Open Library", "An open, editable library catalog, building towards a web page for every book ever published.", "Education")
         };
 
         // Clear existing data if requested

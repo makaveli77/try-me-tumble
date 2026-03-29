@@ -6,194 +6,184 @@ using TryMeTumble.Domain.Interfaces;
 using StackExchange.Redis;
 using System.Text.Json;
 
-namespace TryMeTumble.Application.Services
+namespace TryMeTumble.Application.Services;
+
+public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metadataClient, IConnectionMultiplexer redis) : IWebsiteService
 {
-    public class WebsiteService : IWebsiteService
+    private readonly IDatabase _redis = redis.GetDatabase();
+
+    public async Task<WebsiteResponseDto?> GetRandomWebsiteAsync(Guid? categoryId = null)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IWebsiteMetadataClient _metadataClient;
-        private readonly IDatabase _redis;
-
-        public WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metadataClient, IConnectionMultiplexer redis)
-        {
-            _unitOfWork = unitOfWork;
-            _metadataClient = metadataClient;
-            _redis = redis.GetDatabase();
-        }
-
-        public async Task<WebsiteResponseDto?> GetRandomWebsiteAsync(Guid? categoryId = null)
-        {
-            // Redis implementation for random discovery
-            string redisKey = categoryId.HasValue 
-                ? $"websites_list:category:{categoryId.Value}" 
-                : "websites_list";
-                
-            var count = await _redis.ListLengthAsync(redisKey);
-
-            if (count > 0)
-            {
-                var index = new Random().Next((int)count);
-                var websiteJson = await _redis.ListGetByIndexAsync(redisKey, index);
-                
-                if (!websiteJson.IsNullOrEmpty)
-                {
-                    var cachedWebsite = JsonSerializer.Deserialize<WebsiteResponseDto>(websiteJson.ToString());
-                    if (cachedWebsite != null) return cachedWebsite;
-                }
-            }
-
-            // Fallback to database
-            var website = await _unitOfWork.Websites.GetRandomAsync(categoryId);
-            if (website == null) return null;
-
-            var dto = website.ToDto();
+        // Redis implementation for random discovery
+        string redisKey = categoryId.HasValue 
+            ? $"websites_list:category:{categoryId.Value}" 
+            : "websites_list";
             
-            // Cache it for future
-            await _redis.ListRightPushAsync(redisKey, JsonSerializer.Serialize(dto));
+        var count = await _redis.ListLengthAsync(redisKey);
 
-            return dto;
-        }
-
-        public async Task<WebsiteResponseDto> SubmitWebsiteAsync(WebsiteDto websiteDto, Guid userId)
+        if (count > 0)
         {
-            // 1. Uniqueness check: Does this URL already exist?
-            var existingWebsite = await _unitOfWork.Websites.GetByUrlAsync(websiteDto.Url);
-            if (existingWebsite != null)
-            {
-                return existingWebsite.ToDto();
-            }
-
-            // Map DTO to internal entity
-            var website = websiteDto.ToEntity(userId);
-
-            // Resiliently fetch third-party metadata if missing
-            if (string.IsNullOrWhiteSpace(website.Title))
-            {
-                var meta = await _metadataClient.FetchMetadataAsync(website.Url);
-                if (!string.IsNullOrWhiteSpace(meta.Title))
-                {
-                    website.Title = meta.Title;
-                }
-            }
-
-            // Process Tags
-            if (websiteDto.Tags != null && websiteDto.Tags.Any())
-            {
-                foreach (var tagName in websiteDto.Tags)
-                {
-                    var cleanName = tagName.Trim().ToLowerInvariant();
-                    if (string.IsNullOrEmpty(cleanName)) continue;
-
-                    var existingTag = await _unitOfWork.Tags.GetByNameAsync(cleanName);
-                    if (existingTag == null)
-                    {
-                        existingTag = new Tag { Id = Guid.NewGuid(), Name = cleanName };
-                        await _unitOfWork.Tags.AddAsync(existingTag);
-                    }
-
-                    website.WebsiteTags.Add(new WebsiteTag
-                    {
-                        WebsiteId = website.Id,
-                        TagId = existingTag.Id
-                    });
-                }
-            }
-
-            await _unitOfWork.Websites.AddAsync(website);
-            await _unitOfWork.CompleteAsync();
-
-            var dto = website.ToDto();
-            var serializedDto = JsonSerializer.Serialize(dto);
+            var index = new Random().Next((int)count);
+            var websiteJson = await _redis.ListGetByIndexAsync(redisKey, index);
             
-            // Add to Global Redis list for future discovery
-            await _redis.ListRightPushAsync("websites_list", serializedDto);
-            
-            // Add to Category Redis list if applicable
-            if (websiteDto.CategoryId.HasValue)
+            if (!websiteJson.IsNullOrEmpty)
             {
-                await _redis.ListRightPushAsync($"websites_list:category:{websiteDto.CategoryId.Value}", serializedDto);
+                var cachedWebsite = JsonSerializer.Deserialize<WebsiteResponseDto>(websiteJson.ToString());
+                if (cachedWebsite != null) return cachedWebsite;
             }
-            return dto;
         }
 
+        // Fallback to database
+        var website = await unitOfWork.Websites.GetRandomAsync(categoryId);
+        if (website == null) return null;
 
-        public async Task<bool> SaveWebsiteAsync(Guid websiteId, Guid userId)
+        var dto = website.ToDto();
+        
+        // Cache it for future
+        await _redis.ListRightPushAsync(redisKey, JsonSerializer.Serialize(dto));
+
+        return dto;
+    }
+
+    public async Task<WebsiteResponseDto> SubmitWebsiteAsync(WebsiteDto websiteDto, Guid userId)
+    {
+        // 1. Uniqueness check: Does this URL already exist?
+        var existingWebsite = await unitOfWork.Websites.GetByUrlAsync(websiteDto.Url);
+        if (existingWebsite != null)
         {
-            var website = await _unitOfWork.Websites.GetByIdAsync(websiteId);
-            if (website == null) return false;
+            return existingWebsite.ToDto();
+        }
 
-            var existingSave = await _unitOfWork.SavedWebsites.GetByUserAndWebsiteAsync(userId, websiteId);
-            if (existingSave != null) return true; // Already saved
+        // Map DTO to internal entity
+        var website = websiteDto.ToEntity(userId);
 
-            var save = new SavedWebsite
+        // Resiliently fetch third-party metadata if missing
+        if (string.IsNullOrWhiteSpace(website.Title))
+        {
+            var meta = await metadataClient.FetchMetadataAsync(website.Url);
+            if (!string.IsNullOrWhiteSpace(meta.Title))
             {
-                Id = Guid.NewGuid(),
-                WebsiteId = websiteId,
-                UserId = userId
-            };
-
-            await _unitOfWork.SavedWebsites.AddAsync(save);
-            await _unitOfWork.CompleteAsync();
-
-            return true;
+                website.Title = meta.Title;
+            }
         }
 
-        public async Task<bool> UpvoteWebsiteAsync(Guid websiteId, Guid userId)
+        // Process Tags
+        if (websiteDto.Tags != null && websiteDto.Tags.Any())
         {
-            var website = await _unitOfWork.Websites.GetByIdAsync(websiteId);
-            if (website == null) return false;
-
-            var existingUpvote = await _unitOfWork.Upvotes.GetByUserAndWebsiteAsync(userId, websiteId);
-            if (existingUpvote != null) return true; // Already upvoted
-
-            var upvote = new Upvote
+            foreach (var tagName in websiteDto.Tags)
             {
-                Id = Guid.NewGuid(),
-                WebsiteId = websiteId,
-                UserId = userId
-            };
+                var cleanName = tagName.Trim().ToLowerInvariant();
+                if (string.IsNullOrEmpty(cleanName)) continue;
 
-            await _unitOfWork.Upvotes.AddAsync(upvote);
-            await _unitOfWork.CompleteAsync();
+                var existingTag = await unitOfWork.Tags.GetByNameAsync(cleanName);
+                if (existingTag == null)
+                {
+                    existingTag = new Tag { Id = Guid.NewGuid(), Name = cleanName };
+                    await unitOfWork.Tags.AddAsync(existingTag);
+                }
 
-            return true;
+                website.WebsiteTags.Add(new WebsiteTag
+                {
+                    WebsiteId = website.Id,
+                    TagId = existingTag.Id
+                });
+            }
         }
 
-        public async Task<WebsiteResponseDto?> GetWebsiteByIdAsync(Guid websiteId)
+        await unitOfWork.Websites.AddAsync(website);
+        await unitOfWork.CompleteAsync();
+
+        var dto = website.ToDto();
+        var serializedDto = JsonSerializer.Serialize(dto);
+        
+        // Add to Global Redis list for future discovery
+        await _redis.ListRightPushAsync("websites_list", serializedDto);
+        
+        // Add to Category Redis list if applicable
+        if (websiteDto.CategoryId.HasValue)
         {
-            var website = await _unitOfWork.Websites.GetByIdAsync(websiteId);
-            return website?.ToDto();
+            await _redis.ListRightPushAsync($"websites_list:category:{websiteDto.CategoryId.Value}", serializedDto);
         }
+        return dto;
+    }
 
-        public async Task<IEnumerable<WebsiteResponseDto>> GetWebsitesByCategoryAsync(Guid categoryId, int page = 1, int pageSize = 20)
+    public async Task<bool> SaveWebsiteAsync(Guid websiteId, Guid userId)
+    {
+        var website = await unitOfWork.Websites.GetByIdAsync(websiteId);
+        if (website == null) return false;
+
+        var existingSave = await unitOfWork.SavedWebsites.GetByUserAndWebsiteAsync(userId, websiteId);
+        if (existingSave != null) return true; // Already saved
+
+        var save = new SavedWebsite
         {
-            var websites = await _unitOfWork.Websites.GetByCategoryAsync(categoryId, page, pageSize);
-            return websites.Select(w => w.ToDto());
-        }
+            Id = Guid.NewGuid(),
+            WebsiteId = websiteId,
+            UserId = userId
+        };
 
-        public async Task<bool> ReportWebsiteAsync(Guid websiteId, Guid userId, string reason)
+        await unitOfWork.SavedWebsites.AddAsync(save);
+        await unitOfWork.CompleteAsync();
+
+        return true;
+    }
+
+    public async Task<bool> UpvoteWebsiteAsync(Guid websiteId, Guid userId)
+    {
+        var website = await unitOfWork.Websites.GetByIdAsync(websiteId);
+        if (website == null) return false;
+
+        var existingUpvote = await unitOfWork.Upvotes.GetByUserAndWebsiteAsync(userId, websiteId);
+        if (existingUpvote != null) return true; // Already upvoted
+
+        var upvote = new Upvote
         {
-            var website = await _unitOfWork.Websites.GetByIdAsync(websiteId);
-            if (website == null) return false;
+            Id = Guid.NewGuid(),
+            WebsiteId = websiteId,
+            UserId = userId
+        };
 
-            var report = new Report
-            {
-                Id = Guid.NewGuid(),
-                WebsiteId = websiteId,
-                UserId = userId,
-                Reason = reason
-            };
+        await unitOfWork.Upvotes.AddAsync(upvote);
+        await unitOfWork.CompleteAsync();
 
-            await _unitOfWork.Reports.AddAsync(report);
-            await _unitOfWork.CompleteAsync();
+        return true;
+    }
 
-            return true;
-        }
+    public async Task<WebsiteResponseDto?> GetWebsiteByIdAsync(Guid websiteId)
+    {
+        var website = await unitOfWork.Websites.GetByIdAsync(websiteId);
+        return website?.ToDto();
+    }
 
-        public async Task<IEnumerable<ReportResponseDto>> GetUnresolvedReportsAsync(int page = 1, int pageSize = 20)
+    public async Task<IEnumerable<WebsiteResponseDto>> GetWebsitesByCategoryAsync(Guid categoryId, int page = 1, int pageSize = 20)
+    {
+        var websites = await unitOfWork.Websites.GetByCategoryAsync(categoryId, page, pageSize);
+        return websites.Select(w => w.ToDto());
+    }
+
+    public async Task<bool> ReportWebsiteAsync(Guid websiteId, Guid userId, string reason)
+    {
+        var website = await unitOfWork.Websites.GetByIdAsync(websiteId);
+        if (website == null) return false;
+
+        var report = new Report
         {
-            var reports = await _unitOfWork.Reports.GetUnresolvedReportsAsync(page, pageSize);
-            return reports.Select(r => r.ToDto());
-        }
+            Id = Guid.NewGuid(),
+            WebsiteId = websiteId,
+            UserId = userId,
+            Reason = reason
+        };
+
+        await unitOfWork.Reports.AddAsync(report);
+        await unitOfWork.CompleteAsync();
+
+        return true;
+    }
+
+    public async Task<IEnumerable<ReportResponseDto>> GetUnresolvedReportsAsync(int page = 1, int pageSize = 20)
+    {
+        var reports = await unitOfWork.Reports.GetUnresolvedReportsAsync(page, pageSize);
+        return reports.Select(r => r.ToDto());
     }
 }
+

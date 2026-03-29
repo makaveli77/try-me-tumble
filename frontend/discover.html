@@ -78,7 +78,7 @@
 
             <div class="py-12">
                 <button id="discoverBtn" class="group relative px-12 py-6 bg-white text-black font-black text-2xl rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_-12px_rgba(255,255,255,0.4)]">
-                    STUMBLE!
+                    TUMBLE!
                     <div class="absolute inset-0 rounded-2xl bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </button>
             </div>
@@ -109,7 +109,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <button id="nextBtn" class="bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105">
-                    NEXT STUMBLE
+                    NEXT TUMBLE
                 </button>
                 <a id="openNewTab" target="_blank" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Open in new tab">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,7 +122,7 @@
             <!-- Loading indicator for iframe -->
             <div id="iframeLoader" class="absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center space-y-4">
                 <div class="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-zinc-400 font-medium">Stumbling to the unknown...</p>
+                <p class="text-zinc-400 font-medium">Tumbling to the unknown...</p>
                 <p class="text-zinc-600 text-xs text-center max-w-xs">Note: Some websites may prevent being displayed inside a frame for security reasons.</p>
             </div>
 
@@ -145,7 +145,7 @@
                         </svg>
                     </a>
                     <button onclick="stumble()" class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-bold transition-all">
-                        Try Another Stumble
+                        Try Another Tumble
                     </button>
                 </div>
             </div>
@@ -236,7 +236,7 @@
                 }
             } catch (err) {
                 console.error("Discovery failed", err);
-                alert("Something went wrong while trying to stumble. Please try again.");
+                alert("Something went wrong while trying to tumble. Please try again.");
                 closeModal();
             }
         }

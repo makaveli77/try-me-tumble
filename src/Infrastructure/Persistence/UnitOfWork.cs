@@ -1,34 +1,27 @@
 using TryMeTumble.Domain.Interfaces;
 using TryMeTumble.Infrastructure.Persistence.Repositories;
 
-namespace TryMeTumble.Infrastructure.Persistence
+namespace TryMeTumble.Infrastructure.Persistence;
+
+public class UnitOfWork(
+    DataContext context,
+    IUserRepository users,
+    IWebsiteRepository websites,
+    ICategoryRepository categories,
+    ITagRepository tags,
+    IUpvoteRepository upvotes,
+    ISavedWebsiteRepository savedWebsites,
+    IReportRepository reports) : IUnitOfWork
 {
-    public class UnitOfWork : IUnitOfWork
-    {
-        private readonly DataContext _context;
+    public IUserRepository Users { get; } = users;
+    public IWebsiteRepository Websites { get; } = websites;
+    public ICategoryRepository Categories { get; } = categories;
+    public ITagRepository Tags { get; } = tags;
+    public IUpvoteRepository Upvotes { get; } = upvotes;
+    public ISavedWebsiteRepository SavedWebsites { get; } = savedWebsites;
+    public IReportRepository Reports { get; } = reports;
 
-        public UnitOfWork(DataContext context)
-        {
-            _context = context;
-            Users = new UserRepository(_context);
-            Websites = new WebsiteRepository(_context);
-            Categories = new CategoryRepository(_context);
-            Tags = new TagRepository(_context);
-            Upvotes = new UpvoteRepository(_context);
-            SavedWebsites = new SavedWebsiteRepository(_context);
-            Reports = new ReportRepository(_context);
-        }
+    public async Task<int> CompleteAsync() => await context.SaveChangesAsync();
 
-        public IUserRepository Users { get; private set; }
-        public IWebsiteRepository Websites { get; private set; }
-        public ICategoryRepository Categories { get; private set; }
-        public ITagRepository Tags { get; private set; }
-        public IUpvoteRepository Upvotes { get; private set; }
-        public ISavedWebsiteRepository SavedWebsites { get; private set; }
-        public IReportRepository Reports { get; private set; }
-
-        public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();
-
-        public void Dispose() => _context.Dispose();
-    }
+    public void Dispose() => context.Dispose();
 }

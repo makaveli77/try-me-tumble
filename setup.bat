@@ -31,7 +31,7 @@ dotnet run --project src\DatabaseUpgrader\TryMeTumble.DatabaseUpgrader.csproj
 
 echo 🚀 Starting API in background to seed data...
 set "API_PORT=5202"
-start /b dotnet run --project TryMeTumble.csproj > api_setup.log 2>&1
+start /b dotnet run --project TryMeTumble.csproj --launch-profile http > api_setup.log 2>&1
 echo ⏳ Waiting for API to start (Checking http://localhost:%API_PORT%/health)...
 set "max_attempts=30"
 set "attempt=0"
@@ -57,9 +57,9 @@ echo 🛑 Stopping seeding background process...
 taskkill /IM TryMeTumble.exe /F 2>nul
 taskkill /IM dotnet.exe /F 2>nul
 
+echo 🚀 Launching API...
+dotnet run --project TryMeTumble.csproj --launch-profile http
+
 echo 🎉 Setup Complete!
 echo 📱 Access the frontend at: http://localhost:%API_PORT%/
 echo 📄 Swagger UI: http://localhost:%API_PORT%/swagger
-
-echo 🚀 Launching API...
-dotnet run --project TryMeTumble.csproj

@@ -7,81 +7,70 @@ using TryMeTumble.Application.Mappers;
 using TryMeTumble.Domain.Entities;
 using TryMeTumble.Domain.Interfaces;
 
-namespace TryMeTumble.API.Controllers
+namespace TryMeTumble.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController(IUnitOfWork unitOfWork, IAuthService authService, IUserService userService) : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    [HttpPost("register")]
+    public async Task<ActionResult<UserDto>> Register(UserDto request)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IAuthService _authService;
-        private readonly IUserService _userService;
+        if (await unitOfWork.Users.GetByUsernameAsync(request.Username) != null ||
+            await unitOfWork.Users.GetByEmailAsync(request.Email) != null)
+            return BadRequest("User already exists.");
 
-        public AuthController(IUnitOfWork unitOfWork, IAuthService authService, IUserService userService)
+        var user = new User
         {
-            _unitOfWork = unitOfWork;
-            _authService = authService;
-            _userService = userService;
-        }
+            Id = Guid.NewGuid(),
+            Username = request.Username,
+            Email = request.Email,
+            PasswordHash = authService.HashPassword(request.Password)
+        };
 
-        [HttpPost("register")]
-        public async Task<ActionResult<UserDto>> Register(UserDto request)
-        {
-            if (await _unitOfWork.Users.GetByUsernameAsync(request.Username) != null ||
-                await _unitOfWork.Users.GetByEmailAsync(request.Email) != null)
-                return BadRequest("User already exists.");
+        await unitOfWork.Users.AddAsync(user);
+        await unitOfWork.CompleteAsync();
 
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                Username = request.Username,
-                Email = request.Email,
-                PasswordHash = _authService.HashPassword(request.Password)
-            };
+        // Decouple internal models from HTTP response
+        return Ok(user.ToDto());
+    }
 
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.CompleteAsync();
+    [HttpPost("login")]
+    public async Task<ActionResult<string>> Login(LoginDto request)
+    {
+        var user = await unitOfWork.Users.GetByUsernameAsync(request.Username);
+        if (user == null || !authService.VerifyPassword(request.Password, user.PasswordHash))
+            return BadRequest("Invalid username or password.");
 
-            // Decouple internal models from HTTP response
-            return Ok(user.ToDto());
-        }
+        user.LastLogin = DateTime.UtcNow;
+        await unitOfWork.Users.UpdateAsync(user);
+        await unitOfWork.CompleteAsync();
 
-        [HttpPost("login")]
-        public async Task<ActionResult<string>> Login(LoginDto request)
-        {
-            var user = await _unitOfWork.Users.GetByUsernameAsync(request.Username);
-            if (user == null || !_authService.VerifyPassword(request.Password, user.PasswordHash))
-                return BadRequest("Invalid username or password.");
+        var token = authService.CreateToken(user);
+        return Ok(token);
+    }
 
-            user.LastLogin = DateTime.UtcNow;
-            await _unitOfWork.Users.UpdateAsync(user);
-            await _unitOfWork.CompleteAsync();
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<UserProfileDto>> GetMe()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-            var token = _authService.CreateToken(user);
-            return Ok(token);
-        }
+        var user = await userService.GetUserProfileAsync(userId);
+        if (user == null) return NotFound();
 
-        [Authorize]
-        [HttpGet("me")]
-        public async Task<ActionResult<UserProfileDto>> GetMe()
-        {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+        return Ok(user);
+    }
 
-            var user = await _userService.GetUserProfileAsync(userId);
-            if (user == null) return NotFound();
-
-            return Ok(user);
-        }
-
-        [Authorize]
-        [HttpPost("logout")]
-        public IActionResult Logout()
-        {
-            // Token invalidation should be handled with Redis/Blacklist in production.
-            // For now, client handles deletion.
-            return Ok(new { message = "Logged out successfully" });
-        }
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        // Token invalidation should be handled with Redis/Blacklist in production.
+        // For now, client handles deletion.
+        return Ok(new { message = "Logged out successfully" });
     }
 }
+
 

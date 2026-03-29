@@ -11,8 +11,7 @@ using TryMeTumble.Domain.Entities;
 using TryMeTumble.Application.Interfaces;
 using TryMeTumble.Application.DTOs;
 
-namespace TryMeTumble.UnitTests
-{
+namespace TryMeTumble.UnitTests;
     public class WebsiteServiceTests
     {
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -41,7 +40,7 @@ namespace TryMeTumble.UnitTests
         {
             // Arrange
             var websiteId = Guid.NewGuid();
-            var website = new Website { Id = websiteId, Url = "https://example.com", Title = "Example" };
+            var website = new Website { Id = websiteId, Url = "https://example.com", Title = "Example", Description = "Test" };
             
             _unitOfWorkMock.Setup(u => u.Websites.GetByIdAsync(websiteId))
                 .ReturnsAsync(website);
@@ -62,7 +61,7 @@ namespace TryMeTumble.UnitTests
             var websiteId = Guid.NewGuid();
             
             _unitOfWorkMock.Setup(u => u.Websites.GetByIdAsync(websiteId))
-                .ReturnsAsync((Website)null);
+                .ReturnsAsync((Website?)null);
 
             // Act
             var result = await _websiteService.GetWebsiteByIdAsync(websiteId);
@@ -75,9 +74,9 @@ namespace TryMeTumble.UnitTests
         public async Task SubmitWebsiteAsync_WhenUrlAlreadyExists_ShouldReturnExistingDto()
         {
             // Arrange
-            var websiteDto = new WebsiteDto { Url = "https://existing.com", Title = "New Attempt" };
+            var websiteDto = new WebsiteDto { Url = "https://existing.com", Title = "New Attempt", Description = "Test" };
             var userId = Guid.NewGuid();
-            var existingWebsite = new Website { Id = Guid.NewGuid(), Url = "https://existing.com", Title = "Original Title" };
+            var existingWebsite = new Website { Id = Guid.NewGuid(), Url = "https://existing.com", Title = "Original Title", Description = "Original" };
 
             _unitOfWorkMock.Setup(u => u.Websites.GetByUrlAsync(websiteDto.Url))
                 .ReturnsAsync(existingWebsite);
@@ -93,4 +92,3 @@ namespace TryMeTumble.UnitTests
             _unitOfWorkMock.Verify(u => u.Websites.AddAsync(It.IsAny<Website>()), Times.Never);
         }
     }
-}

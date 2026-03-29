@@ -1,11 +1,10 @@
-namespace TryMeTumble.Application.DTOs
+namespace TryMeTumble.Application.DTOs;
+
+public class UserProfileDto
 {
-    public class UserProfileDto
-    {
-        public Guid Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public DateTime? LastLogin { get; set; }
-    }
+    public Guid Id { get; set; }
+    public required string Username { get; set; }
+    public required string Email { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastLogin { get; set; }
 }

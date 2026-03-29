@@ -22,3 +22,5 @@
 
 # Optional: exclude appsettings.Development.json if you don't want local settings in repo
 # appsettings.Development.json
+# Logs
+*.log

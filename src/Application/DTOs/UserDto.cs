@@ -1,9 +1,8 @@
-namespace TryMeTumble.Application.DTOs
+namespace TryMeTumble.Application.DTOs;
+
+public class UserDto
 {
-    public class UserDto
-    {
-        public string Username { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
+    public required string Username { get; set; }
+    public required string Email { get; set; }
+    public required string Password { get; set; }
 }

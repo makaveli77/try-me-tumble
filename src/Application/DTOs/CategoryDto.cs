@@ -1,8 +1,7 @@
-namespace TryMeTumble.Application.DTOs
+namespace TryMeTumble.Application.DTOs;
+
+public class CategoryDto
 {
-    public class CategoryDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-    }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
 }

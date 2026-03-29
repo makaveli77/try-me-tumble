@@ -27,10 +27,22 @@ builder.Services.AddSwaggerGen();
 
 // Configure PostgreSQL
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // Configure Infrastructure & Application Layers (DI)
+// Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IWebsiteRepository, WebsiteRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<IUpvoteRepository, UpvoteRepository>();
+builder.Services.AddScoped<ISavedWebsiteRepository, SavedWebsiteRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IWebsiteService, WebsiteService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

@@ -194,6 +194,7 @@ docker-compose logs -f
 │   ├── Application/          # DTOs, Mappers, Services, Interfaces
 │   ├── Domain/               # Entities, Aggregate Roots, Repository Interfaces
 │   ├── Infrastructure/       # DataContext, Configuration, UnitOfWork, Auth
+├── frontend/                 # Frontend HTML, JS and CSS files
 ├── tests/
 │   └── TryMeTumble.UnitTests/# xUnit tests, Moq dependencies & unit coverage
 ├── scripts/                  # CI/CD Deployment Scripts

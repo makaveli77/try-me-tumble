@@ -101,9 +101,25 @@ public class SeederService(IUnitOfWork unitOfWork, IConnectionMultiplexer redis)
 
         if (count > realWebsites.Count)
         {
+            var searchBaseUrls = new[]
+            {
+                "https://en.wikipedia.org/wiki/Special:Search?search=",
+                "https://archive.org/search.php?query=",
+                "https://itch.io/search?q=",
+                "https://dev.to/search?q=",
+                "https://github.com/search?q=",
+                "https://bandcamp.com/search?q=",
+                "https://www.youtube.com/embed?listType=search&list="
+            };
+
             var websiteFaker = new Faker<Website>()
                 .RuleFor(w => w.Id, f => Guid.NewGuid())
-                .RuleFor(w => w.Url, f => f.Internet.Url() + "?ref=" + Guid.NewGuid().ToString("N"))
+                .RuleFor(w => w.Url, f => 
+                {
+                    var baseUrl = f.PickRandom(searchBaseUrls);
+                    var term = Uri.EscapeDataString(f.Commerce.Department().ToLower());
+                    return $"{baseUrl}{term}&ref={Guid.NewGuid():N}";
+                })
                 .RuleFor(w => w.Title, f => f.Company.CatchPhrase())
                 .RuleFor(w => w.Description, f => f.Company.Bs())
                 .RuleFor(w => w.SubmittedById, f => systemUser.Id)

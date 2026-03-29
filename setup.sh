@@ -67,7 +67,7 @@ if [ $attempt -eq $max_attempts ]; then
 fi
 
 echo -e "\n🌱 Seeding 1000 random websites..."
-curl -s -X POST "http://localhost:5202/api/Websites/seed?count=${SEED_COUNT:-200}" > /dev/null
+curl -s -X POST "http://localhost:5202/api/Websites/seed?count=${SEED_COUNT:-1000}" > /dev/null
 
 echo "✅ Seeding complete!"
 echo "🛑 Stopping seeding background process..."

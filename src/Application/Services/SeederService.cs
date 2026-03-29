@@ -53,7 +53,6 @@ public class SeederService(IUnitOfWork unitOfWork, IConnectionMultiplexer redis)
             ("https://archive.org", "The Internet Archive", "A non-profit library of millions of free books, movies, software, music, websites, and more.", "Technology"),
             ("https://news.ycombinator.com/", "Hacker News", "A social news website focusing on computer science and entrepreneurship. Runs fast and embeds well.", "Technology"),
             ("https://www.bing.com", "Bing", "Microsoft's search engine. Fully allows embedding for testing purposes.", "Technology"),
-            ("https://www.youtube.com/embed/jfKfPfyJRdk", "Lofi Girl Radio", "A classic embedded YouTube stream for background music.", "Music"),
             ("https://maps.google.com/maps?q=London&t=&z=13&ie=UTF8&iwloc=&output=embed", "Google Maps", "Embedded interactive map of London.", "Education"),
             ("https://xkcd.com/", "XKCD", "A webcomic of romance, sarcasm, math, and language.", "Entertainment"),
             ("https://lobste.rs/", "Lobsters", "Computing-focused community centered around link aggregation and discussion.", "Technology"),
@@ -108,8 +107,7 @@ public class SeederService(IUnitOfWork unitOfWork, IConnectionMultiplexer redis)
                 "https://itch.io/search?q=",
                 "https://dev.to/search?q=",
                 "https://github.com/search?q=",
-                "https://bandcamp.com/search?q=",
-                "https://www.youtube.com/embed?listType=search&list="
+                "https://bandcamp.com/search?q="
             };
 
             var websiteFaker = new Faker<Website>()

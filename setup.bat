@@ -50,7 +50,7 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo 🌱 Seeding 1000 random websites...
-curl -s -X POST "http://localhost:%API_PORT%/api/Websites/seed?count=1000" > nul
+curl -s -X POST "http://localhost:%API_PORT%/api/Websites/seed?count=%SEED_COUNT%" > nul
 
 echo ✅ Seeding complete!
 echo 🛑 Stopping seeding background process...

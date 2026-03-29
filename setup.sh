@@ -84,9 +84,9 @@ if lsof -t -i:5202 > /dev/null 2>&1; then
 fi
 
 # 6. Final Launch
-echo "🚀 Launching API..."
-dotnet run --project TryMeTumble.csproj --launch-profile http
-
 echo "🎉 Setup Complete!"
 echo "📱 Access the frontend at: http://localhost:5202/"
 echo "📄 Swagger UI: http://localhost:5202/swagger"
+
+echo "🚀 Launching API..."
+dotnet run --project TryMeTumble.csproj --launch-profile http

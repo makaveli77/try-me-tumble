@@ -59,7 +59,7 @@ jobs:
       run: dotnet test TryMeTumble.slnx --no-build --verbosity normal -c Release
       env:
         ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=app_test;Username=app;Password=testpassword123"
-        RedisCacheSettings__ConnectionString: "127.0.0.1:6379"
+        ConnectionStrings__Redis: "127.0.0.1:6379"
 
   deploy_staging:
     name: Deploy to Staging

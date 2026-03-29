@@ -58,8 +58,8 @@ taskkill /IM TryMeTumble.exe /F 2>nul
 taskkill /IM dotnet.exe /F 2>nul
 
 echo 🚀 Launching API...
-dotnet run --project TryMeTumble.csproj --launch-profile http
-
 echo 🎉 Setup Complete!
 echo 📱 Access the frontend at: http://localhost:%API_PORT%/
 echo 📄 Swagger UI: http://localhost:%API_PORT%/swagger
+
+dotnet run --project TryMeTumble.csproj --launch-profile http

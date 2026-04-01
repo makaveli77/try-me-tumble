@@ -99,7 +99,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 
-app.MapGet("/", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "discover.html"), "text/html"));
+app.MapGet("/", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "discover.html"), "text/html"));
 
 app.UseAuthentication();
 app.UseAuthorization();

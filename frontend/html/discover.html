@@ -5,42 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discover - TryMeTumble</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <style>
-        @layer base {
-            body { @apply bg-zinc-950 text-zinc-100 font-sans overflow-x-hidden; }
-        }
-        .shining-border {
-            position: relative;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .shining-border::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, transparent, rgba(236, 72, 153, 0.3), transparent);
-            z-index: -1;
-            animation: shine 3s linear infinite;
-        }
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%); }
-            100% { transform: translateX(100%) translateY(100%); }
-        }
-
-        /* Iframe Modal styles */
-        #iframeModal {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #iframeModal.hidden {
-            display: none;
-            opacity: 0;
-            transform: scale(0.95);
-        }
-    </style>
+    <link rel="stylesheet" href="css/discover.css">
 </head>
 <body class="min-h-screen flex flex-col">
     <!-- Navbar -->
@@ -161,6 +126,6 @@
         </div>
     </footer>
 
-    <script src="discover.js"></script>
+    <script src="js/discover.js"></script>
 </body>
 </html>

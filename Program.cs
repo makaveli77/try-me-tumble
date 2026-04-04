@@ -76,6 +76,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = false,
             ValidateAudience = false
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Cookies.ContainsKey("jwt"))
+                {
+                    context.Token = context.Request.Cookies["jwt"];
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
@@ -100,6 +111,10 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.MapGet("/", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "discover.html"), "text/html"));
+app.MapGet("/discover.html", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "discover.html"), "text/html"));
+app.MapGet("/login.html", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "login.html"), "text/html"));
+app.MapGet("/signup.html", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "signup.html"), "text/html"));
+app.MapGet("/admin.html", () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "frontend", "html", "admin.html"), "text/html"));
 
 app.UseAuthentication();
 app.UseAuthorization();

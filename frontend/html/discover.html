@@ -23,8 +23,9 @@
                 <a href="#" class="text-zinc-400 hover:text-white transition-colors">Categories</a>
             </div>
             <div class="flex items-center gap-4">
-                <button class="px-4 py-2 border border-zinc-700 rounded-full hover:bg-zinc-800 transition-colors text-sm font-medium">Log In</button>
-                <button class="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-full transition-colors text-sm font-medium">Sign Up</button>
+                <a href="login.html" class="px-4 py-2 border border-zinc-700 rounded-full hover:bg-zinc-800 transition-colors text-sm font-medium">Log In</a>
+                <a href="signup.html" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-full transition-colors text-sm font-medium">Sign Up</a>
+                <button id="logoutBtn" class="hidden px-4 py-2 bg-zinc-800 hover:bg-red-900/50 hover:text-red-300 rounded-full transition-colors text-sm font-medium">Log out</button>
             </div>
         </div>
     </nav>
@@ -73,6 +74,26 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <!-- Action Buttons -->
+                <button id="upvoteBtn" class="flex items-center gap-1.5 p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-pink-500 transition-colors" title="Upvote">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514" />
+                    </svg>
+                    <span id="upvoteCount" class="text-xs font-bold">0</span>
+                </button>
+                <button id="saveBtn" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-blue-500 transition-colors" title="Save Website">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                </button>
+                <button id="reportBtn" onclick="openReportModal()" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-red-500 transition-colors" title="Report">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                    </svg>
+                </button>
+                <div class="w-px h-6 bg-zinc-800 mx-1"></div>
+                <!-- Action Buttons End -->
+                
                 <button id="nextBtn" class="bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105">
                     NEXT TUMBLE
                 </button>
@@ -116,6 +137,31 @@
             </div>
 
             <iframe id="stumbleFrame" class="w-full h-full border-none opacity-0 transition-opacity duration-500" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+            <button onclick="closeReportModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                </svg>
+                Report Website
+            </h3>
+            <p class="text-zinc-400 text-sm mb-4">Are you sure you want to flag this website? Please provide a reason.</p>
+            <form id="reportForm" onsubmit="submitReport(event)">
+                <textarea id="reportReason" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white placeholder-zinc-500 focus:outline-none focus:border-pink-600 mb-4" rows="3" placeholder="e.g. Inappropriate content, broken link..."></textarea>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeReportModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-zinc-800 hover:bg-zinc-700 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-700 transition">Submit Report</button>
+                </div>
+            </form>
         </div>
     </div>
 

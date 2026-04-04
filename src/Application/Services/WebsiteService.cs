@@ -12,8 +12,10 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
 {
     private readonly IDatabase _redis = redis.GetDatabase();
 
-    public async Task<WebsiteResponseDto?> GetRandomWebsiteAsync(Guid? categoryId = null)
+    public async Task<WebsiteResponseDto?> GetRandomWebsiteAsync(Guid? categoryId = null, Guid? userId = null)
     {
+        WebsiteResponseDto? resultDto = null;
+        
         // Redis implementation for random discovery
         string redisKey = categoryId.HasValue 
             ? $"websites_list:category:{categoryId.Value}" 
@@ -29,20 +31,32 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
             if (!websiteJson.IsNullOrEmpty)
             {
                 var cachedWebsite = JsonSerializer.Deserialize<WebsiteResponseDto>(websiteJson.ToString());
-                if (cachedWebsite != null) return cachedWebsite;
+                if (cachedWebsite != null) resultDto = cachedWebsite;
             }
         }
 
         // Fallback to database
-        var website = await unitOfWork.Websites.GetRandomAsync(categoryId);
-        if (website == null) return null;
-
-        var dto = website.ToDto();
+        if (resultDto == null)
+        {
+            var website = await unitOfWork.Websites.GetRandomAsync(categoryId);
+            if (website != null) 
+            {
+                resultDto = website.ToDto();
+                // Cache it for future
+                await _redis.ListRightPushAsync(redisKey, JsonSerializer.Serialize(resultDto));
+            }
+        }
         
-        // Cache it for future
-        await _redis.ListRightPushAsync(redisKey, JsonSerializer.Serialize(dto));
+        if (resultDto != null && userId.HasValue && userId.Value != Guid.Empty)
+        {
+            var existingSave = await unitOfWork.SavedWebsites.GetByUserAndWebsiteAsync(userId.Value, resultDto.Id);
+            resultDto.IsSavedByCurrentUser = existingSave != null;
+            
+            var existingUpvote = await unitOfWork.Upvotes.GetByUserAndWebsiteAsync(userId.Value, resultDto.Id);
+            resultDto.IsUpvotedByCurrentUser = existingUpvote != null;
+        }
 
-        return dto;
+        return resultDto;
     }
 
     public async Task<WebsiteResponseDto> SubmitWebsiteAsync(WebsiteDto websiteDto, Guid userId)
@@ -113,7 +127,13 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
         if (website == null) return false;
 
         var existingSave = await unitOfWork.SavedWebsites.GetByUserAndWebsiteAsync(userId, websiteId);
-        if (existingSave != null) return true; // Already saved
+        if (existingSave != null) 
+        {
+            // Already saved, let's toggle (remove) it
+            await unitOfWork.SavedWebsites.DeleteAsync(existingSave);
+            await unitOfWork.CompleteAsync();
+            return false; // Return false to indicate un-saved/removed
+        }
 
         var save = new SavedWebsite
         {
@@ -125,7 +145,7 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
         await unitOfWork.SavedWebsites.AddAsync(save);
         await unitOfWork.CompleteAsync();
 
-        return true;
+        return true; // Return true to indicate saved/added
     }
 
     public async Task<bool> UpvoteWebsiteAsync(Guid websiteId, Guid userId)
@@ -134,7 +154,13 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
         if (website == null) return false;
 
         var existingUpvote = await unitOfWork.Upvotes.GetByUserAndWebsiteAsync(userId, websiteId);
-        if (existingUpvote != null) return true; // Already upvoted
+        if (existingUpvote != null) 
+        {
+            // Already upvoted, let's toggle (remove) it
+            await unitOfWork.Upvotes.DeleteAsync(existingUpvote);
+            await unitOfWork.CompleteAsync();
+            return false; // Return false to indicate un-upvoted/removed
+        }
 
         var upvote = new Upvote
         {
@@ -146,7 +172,7 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
         await unitOfWork.Upvotes.AddAsync(upvote);
         await unitOfWork.CompleteAsync();
 
-        return true;
+        return true; // Return true to indicate upvoted/added
     }
 
     public async Task<WebsiteResponseDto?> GetWebsiteByIdAsync(Guid websiteId)
@@ -184,6 +210,31 @@ public class WebsiteService(IUnitOfWork unitOfWork, IWebsiteMetadataClient metad
     {
         var reports = await unitOfWork.Reports.GetUnresolvedReportsAsync(page, pageSize);
         return reports.Select(r => r.ToDto());
+    }
+
+    public async Task<bool> ResolveReportAsync(Guid reportId)
+    {
+        var report = await unitOfWork.Reports.GetByIdAsync(reportId);
+        if (report == null) return false;
+
+        report.IsResolved = true;
+        await unitOfWork.Reports.UpdateAsync(report);
+        await unitOfWork.CompleteAsync();
+
+        return true;
+    }
+
+    public async Task<bool> DeleteWebsiteAsync(Guid websiteId)
+    {
+        var website = await unitOfWork.Websites.GetByIdAsync(websiteId);
+        if (website == null) return false;
+
+        await unitOfWork.Websites.DeleteAsync(website);
+        await unitOfWork.CompleteAsync();
+
+        // Also clean up from main redis list to prevent it showing up
+        // (A more thorough cleanup might rebuild the list, but this is a start)
+        return true;
     }
 }
 

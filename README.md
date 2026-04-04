@@ -18,14 +18,15 @@ This project is a high-performance URL discovery service designed to mimic the c
 - **Discover Randomly**: Instantly get a random website from the global database, prioritized by caching layers.
 - **Categorized Discovery**: Supports blistering fast `O(1)` random website lookup natively scoped to specific categories via dynamically populated Redis cache queues.
 - **Smart Data Seeding**: Rapid 20k+ site population via `Bogus`, efficiently piped into both PostgreSQL and segmented Redis queues perfectly tuned for immediate local development. **Includes a curated list of reliable, iframe-friendly websites (Wikipedia, TED, etc.) for a better initial experience.**
-- **Upvote System**: Influence the discovery algorithm by upvoting websites you find interesting.
-- **User Collections**: Save discovered websites to your personal profile for later viewing.
-- **Internal Browser Experience**: Tumble through websites directly within the app using the integrated discovery frame with failure detection and easy skip options.
+- **Upvote System**: Influence the discovery algorithm by upvoting websites you find interesting. (Features toggle-logic so users can undo their votes).
+- **User Collections**: Save discovered websites to your personal profile for later viewing. (Features toggle-logic so users can unsave sites).
+- **Internal Browser Experience**: Tumble through websites directly within the app using the integrated discovery frame with failure detection, upvote/save metrics overlay, and easy skip options.
+- **Front-End Interfaces**: Pure HTML/Tailwind/Vanilla JS providing the complete Discovery app experience, including user Authentication forms (`login.html`, `signup.html`), dynamic user-states (Hides Login prompts upon authenticated sessions), and an Admin Dashboard.
 - **Smart Caching**: Uses Redis to cache candidate lists for discovery, minimizing database load during high traffic.
-- **Stateless Auth**: Secure registration and login flow returning industry-standard JWT tokens.
+- **Stateless Auth**: Secure registration and login flow utilizing **HttpOnly Cookies** storing JWT tokens to protect against Cross-Site Scripting (XSS) attacks. 
 - **Categorization & Tags**: Group websites by dynamic categories and flexible tags for precise discovery.
 - **Sorting Algorithm Worker**: A robust `.NET BackgroundService` that runs periodically to score websites `(upvotes * 2) + (saves * 3) - (reports * 10)` and eagerly rebuilds Redis queues.
-- **Content Moderation**: Flag and report system to keep the site safe.
+- **Content Moderation**: Flag and report system via a frontend modal to keep the site safe. Includes a built-in `/admin` dashboard allowing administrators to resolve reports or permanently ban/delete offending domains.
 - **Data Integrity**: Enforces strict URL uniqueness and implements paginated API responses for large datasets.
 
 ---
@@ -79,16 +80,20 @@ dotnet run --project TryMeTumble.csproj
 ## 📖 API Endpoint Reference
 
 ### 🌀 Discovery & Websites
-* **GET** `/api/Websites/discover` - Returns a random website (Redis cached). Supports optional `?categoryId={id}` for category-specific discovery. **Used by the Frontend Discover page.**
+* **GET** `/api/Websites/discover` - Returns a random website (Redis cached). Includes hydration of current user's upvoted/saved states globally if a secure HTTP-Only JWT Cookie is present.
 * **POST** `/api/Websites/seed?count=1000` - ⚡ **Mock Data Seeder**: Instantly generates and inserts fake websites.
 * **GET** `/api/Websites?page=1&pageSize=10` - Get paginated lists of websites.
 * **GET** `/api/Websites/{id}` - Get website details.
 * **GET** `/api/Websites/by-category/{categoryId}` - Filter websites.
 * **POST** `/api/Websites` - Submit a new website (enforces URL uniqueness).
-* **POST** `/api/Websites/{id}/upvote` - Upvote a website.
-* **POST** `/api/Websites/{id}/save` - Save a website to your profile.
-* **POST** `/api/Websites/report` - Report a website for moderation.
+* **POST** `/api/Websites/{id}/upvote` - Upvote or toggle removal of an upvote for a website.
+* **POST** `/api/Websites/{id}/save` - Save or toggle removal of a save for a website to your profile.
+* **POST** `/api/Websites/{id}/report` - Report a website with a specific reason.
+
+### 🛡️ Moderation (Admin)
 * **GET** `/api/Websites/reports` - Fetch administrative reports for flagged content.
+* **POST** `/api/Websites/reports/{id}/resolve` - Dismiss/resolve a specific flagged report.
+* **DELETE** `/api/Websites/{id}` - Permanently delete a website from the database.
 
 ### 🔑 Authentication
 * **POST** `/api/Auth/register` - Create a new user.

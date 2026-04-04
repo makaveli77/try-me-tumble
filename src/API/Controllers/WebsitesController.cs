@@ -20,7 +20,17 @@ public class WebsitesController(IWebsiteService websiteService, ISeederService s
     [HttpGet("discover")]
     public async Task<ActionResult<WebsiteResponseDto>> Discover([FromQuery] Guid? categoryId)
     {
-        var result = await websiteService.GetRandomWebsiteAsync(categoryId);
+        Guid? userId = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Guid.TryParse(userIdClaim, out var parsedId))
+            {
+                userId = parsedId;
+            }
+        }
+
+        var result = await websiteService.GetRandomWebsiteAsync(categoryId, userId);
         return result == null ? NotFound("No websites found.") : Ok(result);
     }
 
@@ -77,12 +87,30 @@ public class WebsitesController(IWebsiteService websiteService, ISeederService s
         return Ok(new { message = "Successfully reported" });
     }
 
-    [Authorize] // Ideally an Admin policy would be here
+    [Authorize(Roles = "Admin")]
     [HttpGet("reports")]
     public async Task<ActionResult<IEnumerable<ReportResponseDto>>> GetReports([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var result = await websiteService.GetUnresolvedReportsAsync(page, pageSize);
         return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("reports/{id}/resolve")]
+    public async Task<IActionResult> ResolveReport(Guid id)
+    {
+        var success = await websiteService.ResolveReportAsync(id);
+        if (!success) return NotFound("Report not found");
+        return Ok(new { message = "Report resolved" });
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteWebsite(Guid id)
+    {
+        var success = await websiteService.DeleteWebsiteAsync(id);
+        if (!success) return NotFound("Website not found");
+        return Ok(new { message = "Website permanently deleted" });
     }
 }
 

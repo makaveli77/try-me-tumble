@@ -21,7 +21,9 @@ public static class WebsiteMapperExtensions
                 Description = wc.Category?.Description ?? string.Empty
             }).ToList() ?? new List<CategoryDto>(),
             Tags = website.WebsiteTags?.Select(wt => wt.Tag?.Name ?? string.Empty)
-                    .Where(t => !string.IsNullOrEmpty(t)).ToList() ?? new List<string>()
+                    .Where(t => !string.IsNullOrEmpty(t)).ToList() ?? new List<string>(),
+            UpvotesCount = website.Upvotes?.Count ?? 0,
+            SavesCount = website.SavedWebsites?.Count ?? 0
         };
     }
 

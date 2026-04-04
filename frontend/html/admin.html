@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-zinc-950 text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Try Me Tumble</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex flex-col p-8">
+    <header class="max-w-6xl mx-auto w-full mb-8 flex justify-between items-center">
+        <h1 class="text-3xl font-bold font-mono">
+            <span class="text-pink-500">try</span>_me<span class="text-blue-500">tumble</span> /admin
+        </h1>
+        <a href="discover.html" class="text-zinc-400 hover:text-white">Back to App</a>
+    </header>
+
+    <main class="flex-1 max-w-6xl mx-auto w-full">
+        <h2 class="text-xl font-semibold mb-4 border-b border-zinc-800 pb-2">Unresolved Reports</h2>
+        <div id="reportsList" class="space-y-4">
+            <p class="text-zinc-500">Loading reports...</p>
+        </div>
+    </main>
+
+    <script>
+        const reportsList = document.getElementById('reportsList');
+        
+        function getAuthHeaders() {
+            // Relies on the HttpOnly cookie for auth, so no Bearer required
+            return {};
+        }
+
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/Websites/reports', { headers: getAuthHeaders() });
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        reportsList.innerHTML = '<p class="text-red-500">Unauthorized. Please log in as an admin.</p>';
+                    } else {
+                        throw new Error('Failed to fetch');
+                    }
+                    return;
+                }
+                const reports = await response.json();
+                
+                if (reports.length === 0) {
+                    reportsList.innerHTML = '<p class="text-emerald-500">No unresolved reports! Good job.</p>';
+                    return;
+                }
+
+                reportsList.innerHTML = reports.map(r => `
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex justify-between items-center" id="report-${r.id}">
+                        <div>
+                            <div class="text-xs text-zinc-500 mb-1">Reported Website ID: 
+                                <span class="font-mono text-pink-400">${r.websiteId}</span>
+                            </div>
+                            <div class="font-medium mb-1">Reason: <span class="text-red-400">${r.reason}</span></div>
+                            <div class="text-sm text-zinc-400">Reported By: ${r.userId} at ${new Date(r.reportedAt || Date.now()).toLocaleString()}</div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="resolveReport('${r.id}')" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-bold text-emerald-400 transition-colors">
+                                Dismiss / Resolve
+                            </button>
+                            <button onclick="deleteWebsite('${r.websiteId}', '${r.id}')" class="px-4 py-2 bg-red-900/50 hover:bg-red-900 rounded-lg text-sm font-bold text-red-100 transition-colors">
+                                Ban & Delete Site
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error(err);
+                reportsList.innerHTML = '<p class="text-red-500">Error loading reports.</p>';
+            }
+        }
+
+        window.resolveReport = async function(reportId) {
+            if (!confirm('Are you sure you want to dismiss this report?')) return;
+            try {
+                const res = await fetch(`/api/Websites/reports/${reportId}/resolve`, { method: 'POST', headers: getAuthHeaders() });
+                if (res.ok) {
+                    document.getElementById(`report-${reportId}`).remove();
+                } else alert('Failed to resolve report');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        window.deleteWebsite = async function(websiteId, reportId) {
+            if (!confirm('Are you sure you want to PERMANENTLY DELETE this website?')) return;
+            try {
+                const res = await fetch(`/api/Websites/${websiteId}`, { method: 'DELETE', headers: getAuthHeaders() });
+                if (res.ok) {
+                    alert('Website deleted');
+                    document.getElementById(`report-${reportId}`).remove();
+                } else alert('Failed to delete website');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        loadReports();
+    </script>
+</body>
+</html>

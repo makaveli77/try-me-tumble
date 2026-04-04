@@ -36,7 +36,7 @@ public class AuthController(IUnitOfWork unitOfWork, IAuthService authService, IU
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<string>> Login(LoginDto request)
+    public async Task<IActionResult> Login(LoginDto request)
     {
         var user = await unitOfWork.Users.GetByUsernameAsync(request.Username);
         if (user == null || !authService.VerifyPassword(request.Password, user.PasswordHash))
@@ -47,7 +47,18 @@ public class AuthController(IUnitOfWork unitOfWork, IAuthService authService, IU
         await unitOfWork.CompleteAsync();
 
         var token = authService.CreateToken(user);
-        return Ok(token);
+        
+        // Secure the token in an HttpOnly cookie
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true, // Force HTTPS
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddDays(7)
+        };
+        Response.Cookies.Append("jwt", token, cookieOptions);
+
+        return Ok(new { message = "Logged in successfully", role = user.Role });
     }
 
     [Authorize]
@@ -67,8 +78,8 @@ public class AuthController(IUnitOfWork unitOfWork, IAuthService authService, IU
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        // Token invalidation should be handled with Redis/Blacklist in production.
-        // For now, client handles deletion.
+        // Clear HttpOnly cookie
+        Response.Cookies.Delete("jwt");
         return Ok(new { message = "Logged out successfully" });
     }
 }
